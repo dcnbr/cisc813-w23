@@ -1,3 +1,7 @@
+# run with
+# ~$ python3 genhidato.py h0.csv
+# generated problem sent to stdout
+
 import sys
 
 grid_width = 3
