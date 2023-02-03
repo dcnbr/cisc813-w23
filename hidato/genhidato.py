@@ -1,7 +1,8 @@
+import sys
 
 grid_width = 3
 grid_height = 3
- 
+
 preamble = """(define (problem REPLACE)
     (:domain hidato)
 """
@@ -34,8 +35,7 @@ for i in range(2,total_numbers):
     if symmetric:
         print("\t\t(are_consecutive n"+str(i)+" n"+str(i-1)+")")
 
-
-# Generate grid adjacency pairs (symmetric)
+# grid adjacency pairs (symmetric)
 for i in range(0,grid_width*grid_height):
     row=int(i/grid_width)
     col=int(i%grid_width)
@@ -48,9 +48,27 @@ for i in range(0,grid_width*grid_height):
             if lin != i:
                 print("\t\t(are_adjacent t"+str(i)+" t"+str(lin)+")")
 
+# puzzle start
+with open(sys.argv[1]) as file:
+    line_count = 0
+    for line in file:
+        row = line.rstrip().split(",")
+        for i in range(len(row)):
+            try:
+                val = int(row[i])
+                print("\n")
+                print("\t\t(is_placed n"+str(val)+")")
+                print("\t\t(is_occupied t"+str(line_count+i)+")")
+                print("\t\t(has_value t"+str(line_count+i)+" n" +str(val)+")")
+            except:
+                pass
+        line_count = line_count + grid_width
+
+
+# end initial predicates
+print("\t)\n")
+
 postamble = """
-    )
-    
     (:goal (and
 
     ))
