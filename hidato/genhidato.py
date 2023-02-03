@@ -70,7 +70,56 @@ print("\t)\n")
 
 postamble = """
     (:goal (and
+        (forall (?n - number)(is_placed ?n))
+        (forall (?t - tile) (is_occupied ?t))
 
+		(forall (?n - number ?t - tile)
+
+			; if that cell holds value ?n, then
+			(imply (has_value ?t ?n)
+
+				; either
+				(or
+
+					; (1) it is a 'middling' number, so it is adjacent to its
+					; preceeding and succeding numbers
+					(exists (?t2 ?t0 - tile ?n0 ?n2 - number)(and
+						(has_value ?t2 ?n2)
+						(are_adjacent ?t ?t2)
+						(are_consecutive ?n ?n2)
+						(has_value ?t0 ?n0)
+						(are_adjacent ?t ?t0)
+						(are_consecutive ?n0 ?n)
+					))
+
+					; (2) it is the lowest number, so it is only adjacent to
+					; its succeeding number
+					(and
+						(exists (?t2 - tile ?n2 - number) (and
+							(has_value ?t2 ?n2)
+							(are_adjacent ?t ?t2)
+							(are_consecutive ?n ?n2)
+						))
+						(not (exists (?n0 - number)(and
+							(are_consecutive ?n0 ?n)
+						)))
+					)
+
+					; (3) it is the highest number, so it is only adjacent to
+					; its preceeding number
+					(and
+						(exists (?t0 - tile ?n0 - number) (and
+							(has_value ?t0 ?n0)
+							(are_adjacent ?t ?t0)
+							(are_consecutive ?n0 ?n)
+						))
+						(not (exists (?n2 - number)(and
+							(are_consecutive ?n ?n2)
+						)))
+					)
+				)
+			)
+		)
     ))
 )
 """
