@@ -3,7 +3,7 @@
         :typing
         :adl
         :existential-preconditions
-	:negative-preconditions
+        :negative-preconditions
     )
     (:types
         tile number - object
@@ -41,22 +41,22 @@
         )
     )
 
-	(:action fill_largest
-		:parameters (?t - tile ?n - number)
+    (:action fill_largest
+        :parameters (?t - tile ?n - number)
 
-		:precondition (and
-			; no number greater than this one
+        :precondition (and
+            ; no number greater than this one
             (not (exists (?n1 - number)
-				(are_consecutive ?n ?n1)
-			))
-			(not (is_occupied ?t))
+                (are_consecutive ?n ?n1)
+            ))
+            (not (is_occupied ?t))
             (not (is_placed ?n))
-		)
+        )
 
-		:effect (and
+        :effect (and
             (is_placed ?n)
             (is_occupied ?t)
             (has_value ?t ?n)
         )
-	)
+    )
 )
