@@ -1,6 +1,6 @@
 # A2: modelling Hidato
-- December Stuart : 20016104
-- Sal Choueib     : 20016104
+- December Stuart
+- Sal Choueib
 
 ## Background
 
