@@ -4,8 +4,13 @@
 
 import sys
 
-grid_width = 3
-grid_height = 3
+grid_width = 0
+grid_height = 0
+with open(sys.argv[1]) as file:
+    for line in file:
+        row = line.rstrip().split(",")
+        grid_width = max(len(row), grid_width)
+        grid_height = grid_height + 1
 
 preamble = """(define (problem REPLACE)
     (:domain hidato)
@@ -68,65 +73,16 @@ with open(sys.argv[1]) as file:
                 pass
         line_count = line_count + grid_width
 
+print("\n\t\t(at n1)")
+
 
 # end initial predicates
 print("\t)\n")
 
-postamble = """
-    (:goal (and
-        (forall (?n - number)(is_placed ?n))
-        (forall (?t - tile) (is_occupied ?t))
 
-		(forall (?n - number ?t - tile)
-
-			; if that cell holds value ?n, then
-			(imply (has_value ?t ?n)
-
-				; either
-				(or
-
-					; (1) it is a 'middling' number, so it is adjacent to its
-					; preceeding and succeding numbers
-					(exists (?t2 ?t0 - tile ?n0 ?n2 - number)(and
-						(has_value ?t2 ?n2)
-						(are_adjacent ?t ?t2)
-						(are_consecutive ?n ?n2)
-						(has_value ?t0 ?n0)
-						(are_adjacent ?t ?t0)
-						(are_consecutive ?n0 ?n)
-					))
-
-					; (2) it is the lowest number, so it is only adjacent to
-					; its succeeding number
-					(and
-						(exists (?t2 - tile ?n2 - number) (and
-							(has_value ?t2 ?n2)
-							(are_adjacent ?t ?t2)
-							(are_consecutive ?n ?n2)
-						))
-						(not (exists (?n0 - number)(and
-							(are_consecutive ?n0 ?n)
-						)))
-					)
-
-					; (3) it is the highest number, so it is only adjacent to
-					; its preceeding number
-					(and
-						(exists (?t0 - tile ?n0 - number) (and
-							(has_value ?t0 ?n0)
-							(are_adjacent ?t ?t0)
-							(are_consecutive ?n0 ?n)
-						))
-						(not (exists (?n2 - number)(and
-							(are_consecutive ?n ?n2)
-						)))
-					)
-				)
-			)
-		)
-    ))
-)
-"""
-print(postamble)
-
+# goal
+print("\t(:goal")
+print("\t\t(at n"+str(total_numbers)+")")
+print("\t)")
+print(")")
 
