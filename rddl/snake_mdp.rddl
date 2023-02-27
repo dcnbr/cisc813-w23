@@ -1,0 +1,216 @@
+domain snake_mdp {
+	requirements = {
+		constrained-state,
+		continuous,
+		reward-deterministic,
+		integer-valued
+	};
+
+	types {
+		x : object;
+		y : object;
+	};
+
+	pvariables {
+		above(y, y) : {non-fluent, bool, default = false};
+		below(y, y) : {non-fluent, bool, default = false};
+		right(x, x) : {non-fluent, bool, default = false};
+		left(x, x)  : {non-fluent, bool, default = false};
+
+		tail_size_limit : {non-fluent, int, default=1};
+		food_abundance  : {non-fluent, float, default=0.01};
+
+		head_at(x, y) : {state-fluent, bool, default=false};
+		neck_at(x, y) : {state-fluent, bool, default=false};
+		food_at(x, y) : {state-fluent, bool, default=false};
+		snake_moved   : {state-fluent, bool, default=false};
+
+		eating : {state-fluent, bool, default=false};
+
+		is_tail(x, y)  : {state-fluent, bool, default=false};
+		tail_age(x, y) : {state-fluent, int, default=0};
+		tail_size      : {state-fluent, int, default=0};
+
+		move_up    : {action-fluent, bool, default=false};
+		move_down  : {action-fluent, bool, default=false};
+		move_left  : {action-fluent, bool, default=false};
+		move_right : {action-fluent, bool, default=false};
+	};
+
+	cpfs {
+		// movement for the head of the snake
+		head_at'(?x, ?y) =
+			// if we are at a food, take the turn to eat
+			if ( head_at(?x, ?y) ^ (food_at(?x, ?y) | eating) )
+			then
+				true
+			// if there is no food, don't move
+			else if ( head_at(?x, ?y) ^ ~exists_{?x1 : x, ?y1 : y} [food_at(?x1, ?y1)] )
+			then
+				true
+			else if ( move_up ^ exists_{?y_below : y} [above(?y, ?y_below) ^ head_at(?x, ?y_below) ^ ~is_tail(?x, ?y_below)])
+			then
+				// moving up, head is in the destination square and so arrives
+				true
+			else if ( move_up ^ head_at(?x, ?y) ^ exists_{?y_above : y} [above(?y_above, ?y)] )
+			then
+				// moving up, head is in the source square and so leaves
+				false
+			else if ( move_down ^ exists_{?y_above : y} [below(?y, ?y_above) ^ head_at(?x, ?y_above) ^ ~is_tail(?x, ?y_above)])
+			then
+				// moving down, head is in the destination square and so arrives
+				true
+			else if ( move_down ^ head_at(?x, ?y) ^ exists_{?y_below : y} [below(?y_below, ?y)] )
+			then
+				// moving down, head is in the source square and so leaves
+				false
+			else if ( move_left ^ exists_{?x_right : x} [left(?x_right, ?x) ^ head_at(?x_right, ?y) ^ ~is_tail(?x_right, ?y)])
+			then
+				// moving left, head is in the destination square and so arrives
+				true
+			else if ( move_left ^ head_at(?x, ?y) ^ exists_{?x_left : x} [left(?y_left, ?y)] )
+			then
+				// moving left, head is in the source square and leaves
+				false
+			else if ( move_right ^ exists_{?x_left : x} [right(?x_left, ?x) ^ head_at(?x_left, ?y) ^ ~is_tail(?x_left, ?y)])
+			then
+				true
+				// moving right, head is in the destination square and so arrives
+			else if ( move_right ^ head_at(?x, ?y) ^ exists_{?x_right : x} [right(?x_right, ?x)] )
+			then
+				// moving right, head is in the source square and leaves
+				false
+			else
+				// tried to move oob or into tail, so cut the head off
+				false;
+
+		// neck is always one step behind the head
+		neck_at'(?x, ?y) = head_at(?x, ?y);
+
+		// snake has moved if the neck is not on the head
+		snake_moved' = ~exists_{?x : x, ?y : y} [head_at(?x, ?y) ^ neck_at(?x, ?y)];
+
+		eating' =
+			// if the head is at a tile with food
+			if ( head_at(?x, ?y) ^ food_at(?x, ?y) )
+			then  // snake eats the food in the next state
+				true
+			else
+				false;
+
+		food_at'(?x, ?y) =
+			// if the head and food was at this tile...
+			if ( head_at(?x, ?y) ^ food_at(?x, ?y) )
+			then // ...the snake eats the food, the food at this tile disappears
+				false
+			// if we are eating or not moving...
+			else if ( ~head_at(?x, ?y) ^ (eating | ~snake_moving ) ^ ~is_neck(?x, ?y) ^ ~is_tail(?x, ?y))
+			then // ...randomly place new foods somewhere the snake is not
+				Bernoulli(food_abundance)
+			else // food stays put
+				food_at(?x, ?y);
+
+
+		// The snake's tail is a trail of tiles that the snake neck leaves
+		// behind. Each tail tile is spawned with an age that increments every
+		// time the head moves (and so, makes a new tail tile). Once the tile
+		// has aged past the current length of the snake, we know it is the
+		// furthest piece in the tail, and so it will disappear with the next
+		// move. This ensures that the snake is always of the correct length.
+		is_tail'(?x, ?y) =
+			// if the tail piece is older than the snake length
+			if ( is_tail(?x, ?y) ^ tail_age(?x, ?y) > tail_size )
+			then  // it is the very end of the snake, so it disappears
+				false
+			// if the head has actually moved off of the neck
+			else if ( ~head(?x, ?y) ^ neck(?x, ?y) ^ tail_size > 1 )
+			then // make a new tail piece where the neck is
+				true
+			else  // status quo
+				is_tail(?x, ?y);
+
+		tail_age'(?x, ?y) =
+			if ( eating | ~snake_moved )
+			then //dont age while we eat or stand still
+				tail_age(?x, ?y)
+			// not eating, and did move; so, if we are a tail
+			else if ( is_tail(?x, ?y) )
+			then  // age
+				tail_age(?x, ?y) + 1
+			else  // we are not the snake, and have no age
+				0;
+
+		// snake grows when it eats
+		tail_size' =
+			if ( eating )
+			then
+				tail_size + 1
+			else
+				tail_size;
+
+
+	};
+
+	// reward is the length of the snake, but 0 if there is no head
+	reward = [ tail_size * sum_{?x : x, ?y : y} [head_at(?x, ?y)] ];
+
+
+	state-action-constraints {
+		// at most one head
+		[sum_{?x : x, ?y : y} head_at(?x, ?y)] <= 1;
+
+		// only one neck
+		[sum_{?x : x, ?y : y} neck_at(?x, ?y)] == 1;
+
+		// snakes are the expected length
+		[sum_{?x : x, ?y : y} is_tail(?x, ?y)] == tail_size;
+
+	};
+
+}
+
+non-fluents nf_snake_5x5 {
+	domain = snake_mdp;
+	objects {
+		x : {x1, x2, x3, x4, x5};
+		y : {y1, y2, y3, y4, y5};
+	};
+	non-fluents {
+		above(y5, y4);
+		above(y4, y3);
+		above(y3, y2);
+		above(y2, y1);
+
+		below(y1, y2);
+		below(y2, y3);
+		below(y3, y4);
+		below(y4, y5);
+
+		left(x1, x2);
+		left(x2, x3);
+		left(x3, x4);
+		left(x4, x5);
+
+		right(x5, x4);
+		right(x4, x3);
+		right(x3, x2);
+		right(x2, x1);
+
+		food_abundance = 0.0273; // roughly 50% chance of at least 1 food total given 5^2 flips
+		tail_size_limit = 23;  // = 5^2 - head - neck
+	};
+}
+
+instance snake_instance_1 {
+	domain = snake_mdp;
+	non-fluents = nf_snake_5x5;
+	init-state {
+		head_at(x1, y1);
+		neck_at(x1, y1);
+		food_at(x5, y5);
+	};
+	max-nondef-actions = 1;
+	horizon = 10;
+	discount = 1.0;
+
+}
