@@ -1,0 +1,3 @@
+[submodule "planning-lama"]
+	path = planning-lama
+	url = https://github.com/dcnbr/planning-lama
