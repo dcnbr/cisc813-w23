@@ -77,7 +77,7 @@ scatter3(goal(1), goal(2), goal(3), endsz, ...
 set(gca, 'Xticklabel',[]);
 set(gca, 'Yticklabel',[]);
 set(gca, 'Zticklabel',[]);
-%axis vis3d;
-%set(gcf, 'Position',  [100, 100, 500, 400]);
+axis vis3d;
+set(gcf, 'Position',  [100, 100, 500, 400]);
 
 end
